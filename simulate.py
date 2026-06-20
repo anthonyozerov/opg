@@ -1,28 +1,27 @@
 """
 Simulate historical measurements of the gravitational constant G.
 
-This script invents many imaginary "histories" of how scientists might have
-measured G between 1700 and 2020. Each history (we call it a *dataset*) is built
-from one randomly chosen true value of G and one randomly chosen amount of
-over-confidence (TRUE_BIRGE -- explained below). We then add realistic noise to
-produce 75 fake published measurements, and we also compute running averages of
-the most recent measurements the way real metrologists do.
+Each simulated dataset covers measurements of G between 1700 and 2020, built from
+one randomly chosen true value of G and one randomly chosen amount of
+over-confidence (TRUE_BIRGE, explained below). Realistic noise produces 75
+measurements, and we compute running averages of the most recent measurements as
+metrologists do.
 
-The point of all this is NOT to model the real history of physics. It is to
-create test data with a KNOWN correct answer, so we can later check whether our
-statistical methods (in analysis.py / calibration.py) correctly detect when
-scientists were over-confident. See SCIENTIFIC_CONTEXT.md.
+The goal is not to model the real history of physics but to create test data with
+a known correct answer, so the statistical methods (in analysis.py /
+calibration.py) can be checked for whether they detect over-confidence when it is
+present. See SCIENTIFIC_CONTEXT.md.
 
 Running this script writes two folders:
-  sim-G/             one CSV per dataset: the fake measurements + the averages
-  sim-G-parameters/  one CSV per dataset: the true values we used to make it
+  sim-G/             one CSV per dataset: the measurements + the averages
+  sim-G-parameters/  one CSV per dataset: the true values used to make it
 """
 
 import numpy as np
 import pandas as pd
 import os
 
-# How many imaginary histories to generate.
+# How many datasets to generate.
 N_DATASETS = 1000
 
 # The true value of G is drawn fresh for each dataset from a normal (bell-curve)
@@ -35,9 +34,9 @@ N_MEASUREMENTS = 75
 YEAR_START = 1700
 YEAR_END = 2020
 
-# "Nominal" uncertainty = the error bar a scientist *reports*. Over the centuries
-# instruments improved, so the reported error bar shrinks from NOM_ERR_START (in
-# 1700) down to NOM_ERR_END (in 2020).
+# Nominal uncertainty is the error bar a scientist reports. As instruments
+# improved, the reported error bar shrinks from NOM_ERR_START (1700) to
+# NOM_ERR_END (2020).
 NOM_ERR_START = 0.1
 NOM_ERR_END = 0.00010
 
@@ -45,14 +44,13 @@ NOM_ERR_END = 0.00010
 AVG_YEAR_START = 1930
 AVG_YEAR_STEP = 5
 
-# Real published values come in different flavours, and we mimic that. A value
-# may be reported either directly as G, or as a density "rho" (G = 36.797 / rho).
-# An error bar may be reported as a "standard" error, a "probable error", or an
-# "average deviation". These constants describe how to encode each flavour; the
-# companion script preprocess.py decodes them back to plain G + standard errors.
+# Real published values are reported in different forms, which we mimic. A value
+# may be reported as G or as a density rho (G = 36.797 / rho). An error bar may be
+# a standard error, a probable error, or an average deviation. These constants
+# encode each form; preprocess.py decodes them back to plain G + standard errors.
 VALUE_TYPES = ["G", "rho"]
 ERROR_TYPES = ["probable error", "average deviation", "standard"]
-# To turn a standard error into each reported flavour, multiply by these factors.
+# To turn a standard error into each reported form, multiply by these factors.
 # (preprocess.py divides by the same factor to undo the encoding.)
 ERROR_TYPE_FACTORS = {"probable error": 0.6745, "average deviation": 0.79788, "standard": 1.0}
 
@@ -62,7 +60,7 @@ RHO_CONSTANT = 36.797  # the constant relating density to G: G = RHO_CONSTANT / 
 def generate_years(n, year_start, year_end):
     """Pick n measurement years between year_start and year_end.
 
-    The years are NOT evenly spaced: they bunch up toward the recent end, because
+    The years are not evenly spaced: they bunch up toward the recent end, because
     measurements of G became more frequent over time. The formula below maps an
     evenly spaced helper variable t (0..1) onto years using 1 - (1 - t)**2, a
     curve that stretches early gaps and compresses recent ones.
@@ -75,9 +73,9 @@ def generate_years(n, year_start, year_end):
 def nominal_errors(years):
     """The reported error bar for a measurement taken in each given year.
 
-    Uncertainty shrinks "geometrically" (i.e. by a constant *percentage* per
-    year, not a constant amount). The clean way to do that is to interpolate in
-    log-space between the 1700 value and the 2020 value, then exponentiate back.
+    Uncertainty shrinks geometrically (by a constant percentage per year, not a
+    constant amount), done by interpolating in log-space between the 1700 and 2020
+    values and exponentiating back.
     """
     fraction_of_span = (years - YEAR_START) / (YEAR_END - YEAR_START)
     log_start = np.log(NOM_ERR_START)
@@ -86,15 +84,15 @@ def nominal_errors(years):
 
 
 def birge_weighted_average(values, nominal_errors):
-    """Combine several measurements into one "best estimate" with an error bar.
+    """Combine several measurements into one estimate with an error bar.
 
-    This is the Birge-ratio weighted average used by metrologists:
+    The Birge-ratio weighted average used by metrologists:
       1. Weight each measurement by 1 / error^2 (precise measurements count more).
-      2. The weighted mean is the best estimate.
-      3. If the measurements disagree with each other MORE than their own error
-         bars predict, that is a sign of unreported error, so we inflate the
-         final error bar by the "Birge ratio" = sqrt(chi-squared / degrees of
-         freedom). A Birge ratio near 1 means the error bars are trustworthy.
+      2. The weighted mean is the estimate.
+      3. If the measurements disagree more than their own error bars predict, that
+         indicates unreported error, so the final error bar is inflated by the
+         Birge ratio = sqrt(chi-squared / degrees of freedom). A Birge ratio near 1
+         means the error bars are consistent with the scatter.
     """
     weights = 1.0 / nominal_errors**2
     total_weight = weights.sum()
@@ -115,34 +113,30 @@ def birge_weighted_average(values, nominal_errors):
 
 
 def generate_measurements(n, true_value, true_birge, rng, dist="normal", df=3.0, corr=0.1):
-    """Create n fake measurements of the underlying quantity for one dataset.
+    """Create n measurements of the underlying quantity for one dataset.
 
     Returns (measured_values, nominal_errors, years):
       measured_values -- the noisy measured values
-      nominal_errors  -- the error bar each "scientist" reported
+      nominal_errors  -- the error bar reported for each measurement
       years           -- when each measurement was taken
 
-    The key idea: each scientist reports an error bar (nominal_errors), but their
-    ACTUAL scatter is true_birge times larger than that. So true_birge > 1 means
-    the scientists were collectively over-confident (their real errors are bigger
-    than they claimed). That is exactly the effect our later analysis tries to
-    detect.
+    Each measurement reports an error bar (nominal_errors), but its actual scatter
+    is true_birge times larger. So true_birge > 1 means collective over-confidence
+    (real errors bigger than claimed), the effect the later analysis detects.
 
-    `dist` chooses the *shape* of the noise. The default, "normal", is the
-    textbook model our statistical tests assume. The other two options keep the
-    same overall noise size but deliberately violate an assumption, so we can
-    measure how badly the tests behave when reality doesn't match the textbook:
-      * "normal" -- independent bell-curve noise (the assumed model; the default,
-                    and bit-for-bit identical to the original code).
-      * "t"      -- bell-curve-ish but with heavier tails (more extreme outliers),
-                    same overall spread. Tests robustness to NON-NORMALITY.
-                    Requires df > 2.
-      * "corr"   -- bell-curve noise where measurements are correlated with each
-                    other rather than independent. Tests robustness to DEPENDENCE
-                    between measurements (a worry flagged in SCIENTIFIC_CONTEXT.md).
+    `dist` chooses the shape of the noise. The default, "normal", is the model the
+    statistical tests assume. The other two keep the same overall noise size but
+    violate an assumption, to measure how the tests behave under misspecification:
+      * "normal" -- independent normal noise (the assumed model; the default, and
+                    bit-for-bit identical to the original code).
+      * "t"      -- heavier tails (more extreme outliers), same overall spread.
+                    Tests robustness to non-normality. Requires df > 2.
+      * "corr"   -- normal noise with measurements correlated rather than
+                    independent. Tests robustness to dependence between
+                    measurements (flagged in SCIENTIFIC_CONTEXT.md).
 
     Only the noise shape changes; the reported error bars are untouched, so these
-    options isolate how misspecification alone affects the fixed tests.
+    options isolate the effect of misspecification on the fixed tests.
     """
     years = generate_years(n, YEAR_START, YEAR_END)
     nominal_errors_ = nominal_errors(years)
@@ -159,12 +153,12 @@ def generate_measurements(n, true_value, true_birge, rng, dist="normal", df=3.0,
             raise ValueError("t distribution needs df > 2 for finite variance")
         # A Student-t variable is more spread out than a standard normal, so we
         # divide by its known standard deviation to put it back on unit scale.
-        # That way only the tail SHAPE is changed, not the overall spread.
+        # That way only the tail shape is changed, not the overall spread.
         unit_noise = rng.standard_t(df, size=n) / np.sqrt(df / (df - 2.0))
     elif dist == "corr":
         if not 0.0 <= corr < 1.0:
             raise ValueError("corr must be in [0, 1)")
-        # Make every pair of measurements share a common random "shock" plus its
+        # Make every pair of measurements share a common random component plus its
         # own private noise. Mixing them in this proportion gives each pair a
         # correlation of exactly `corr` while keeping each measurement's spread 1.
         common_shock = rng.standard_normal()
@@ -186,22 +180,22 @@ if __name__ == "__main__":
     os.makedirs("sim-G-parameters", exist_ok=True)
 
     for dataset_index in range(N_DATASETS):
-        # Draw the "ground truth" for this dataset: the real value of G and how
-        # over-confident the scientists are (true_birge).
+        # Draw the ground truth for this dataset: the true value of G and how
+        # over-confident the measurements are (true_birge).
         true_value = RNG.normal(TRUE_VALUE_MEAN, TRUE_VALUE_STD)
         true_birge = RNG.uniform(1, 4)
 
         measured_values, nominal_errs, years = generate_measurements(
             N_MEASUREMENTS, true_value, true_birge, RNG)
 
-        # Give each measurement a random reporting flavour (see the constants up
-        # top): some reported as G vs. density, some with different error types.
+        # Give each measurement a random reporting form (see the constants above):
+        # some reported as G vs. density, some with different error types.
         value_types = RNG.choice(VALUE_TYPES, size=N_MEASUREMENTS)
         error_types = RNG.choice(ERROR_TYPES, size=N_MEASUREMENTS)
         error_factors = np.array([ERROR_TYPE_FACTORS[e] for e in error_types])
 
-        # Encode the clean G values into the chosen reporting flavour. Density
-        # (rho) is the reciprocal relation, and its error bar transforms with it.
+        # Encode the clean G values into the chosen reporting form. Density (rho)
+        # is the reciprocal relation, and its error bar transforms with it.
         rho_values = RHO_CONSTANT / measured_values
         nominal_errs_rho = nominal_errs * rho_values / measured_values
 
@@ -221,8 +215,8 @@ if __name__ == "__main__":
         # is fixed within a dataset but varies between datasets (8 to 14).
         n_recent = int(RNG.integers(8, 15))  # 8 to 14 inclusive
 
-        # Compute a running "best estimate" every 5 years from 1930 onward, each
-        # time combining the n_recent most recent measurements available by then.
+        # Compute a running estimate every 5 years from 1930 onward, each time
+        # combining the n_recent most recent measurements available by then.
         average_years = list(range(AVG_YEAR_START, YEAR_END + 1, AVG_YEAR_STEP))
         average_rows = []
         for year in average_years:

@@ -1,15 +1,15 @@
 """
 Clean up the raw measurements so they are ready for analysis.
 
-simulate.py stores each measurement in whatever "flavour" a scientist might have
+simulate.py stores each measurement in whatever form a scientist might have
 reported it (as G or as density rho; with a standard, probable, or average-
 deviation error bar). This script reverses that encoding so every usable row has:
   * value_processed -- the measurement expressed as plain G
   * error_processed -- its error bar expressed as a plain standard error
-  * use             -- True if the row is a real measurement we should analyse
+  * use             -- True if the row is a real measurement to analyse
 
-Rows we skip (use = False): the running-average rows (doc_type "M"), any rows
-marked superseded, and any row whose flavour we don't recognise.
+Rows skipped (use = False): the running-average rows (doc_type "M"), rows marked
+superseded, and rows whose form is not recognised.
 """
 
 import pandas as pd
@@ -38,7 +38,7 @@ def preprocess(df):
     error_type = np.array(df["error_type"])
     doc_type = np.array(df["doc_type"], dtype=object)
     # Real datasets may have a "superseded" column; simulated ones don't, so
-    # default everyone to "not superseded".
+    # default to not superseded.
     superseded = (np.array(df["superseded"]) if "superseded" in df.columns
                   else np.full(len(values), False))
 
@@ -57,7 +57,7 @@ def preprocess(df):
             continue
         assert np.isnan(doc_type[i])  # at this point only raw rows should remain
 
-        # Step 1: turn whatever error flavour was reported into a standard error.
+        # Step 1: turn the reported error form into a standard error.
         if error_type[i] == "probable error":
             error = error / 0.6745
         elif error_type[i] == "average deviation":
@@ -68,7 +68,7 @@ def preprocess(df):
             print(f"can't handle error type: {error_type[i]}, skipping")
             continue
 
-        # Step 2: turn whatever value flavour was reported into plain G.
+        # Step 2: turn the reported value form into plain G.
         if value_type[i] in ["G", "c"]:
             values_processed[i], errors_processed[i] = value, error
         elif value_type[i] == "rho":

@@ -3,17 +3,17 @@ Analyse one dataset for signs of overprecision, and print a results table.
 
 For a single simulated dataset this prints all three overprecision statistics
 side by side -- the Birge ratio, the calibration-curve area, and the within-1-
-sigma pairwise share -- and for each one shows BOTH ways of getting a confidence
-interval and a p-value (the "parametric" simulation route and the "jackknife"
+sigma pairwise share -- and for each one shows both ways of getting a confidence
+interval and a p-value (the parametric simulation route and the jackknife
 leave-one-out route).
 
 How to read the output:
-  * Each statistic has a known "calibrated" value (Birge ratio = 1, area = 0, share
+  * Each statistic has a known calibrated value (Birge ratio = 1, area = 0, share
     ~= 0.6827). Departures in the overprecision direction (Birge ratio above 1,
-    area above 0, share below 0.6827) suggest scientists were over-confident.
+    area above 0, share below 0.6827) indicate over-confidence.
   * The 95% confidence interval is a plausible range for the true value.
-  * The p-value tests "calibrated error bars" against "overprecision". A small
-    p-value (we flag p < 0.005 with a *) is evidence of overprecision.
+  * The p-value tests calibrated error bars against overprecision. A small p-value
+    (flagged p < 0.005 with a *) is evidence of overprecision.
 
 See STATISTICS_PLAN.md for the statistical details.
 """

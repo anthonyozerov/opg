@@ -1,25 +1,23 @@
 """
 Core statistical tools shared by the analysis scripts.
 
-The central quantity here is the *Birge ratio*. Imagine many measurements of the
-same thing, each with its own claimed error bar. If those error bars are calibrated,
-the measurements should scatter around their average by about as much as the bars
-predict, giving a Birge ratio near 1. If the measurements scatter MORE than the
-bars predict, the Birge ratio is above 1 -- a sign of "overprecision" (scientists
-claiming smaller error bars than they deserve). Detecting that is the whole point
-of this project.
+The central quantity is the Birge ratio. Given many measurements of the same
+quantity, each with its own claimed error bar, calibrated error bars make the
+measurements scatter around their average by about as much as the bars predict,
+giving a Birge ratio near 1. A Birge ratio above 1 means the measurements scatter
+more than the bars predict, which is overprecision.
 
-Throughout, we use the symbol `c` for the *true* population Birge ratio (the real
-amount of overprecision, which the data only let us estimate). See
-STATISTICS_PLAN.md for the full statistical reasoning.
+Throughout, `c` is the true population Birge ratio (the amount of overprecision,
+which the data only let us estimate). See STATISTICS_PLAN.md for the full
+statistical reasoning.
 """
 
 import numpy as np
 from scipy.stats import chi2, norm
 
-# When we build a confidence interval for c by "trying out" many candidate values
-# (see invert_ci below), this is the grid of candidates we try. It runs from well
-# below 1 (under-confidence) up past the largest overprecision we ever simulate.
+# Candidate values of c used when building a confidence interval by test inversion
+# (see invert_ci below). Runs from well below 1 (under-confidence) up past the
+# largest overprecision we simulate.
 CANDIDATE_C_GRID = np.linspace(0.2, 8.0, 200)
 # Kept under the old name too, since other modules import DEFAULT_C0_GRID.
 DEFAULT_C0_GRID = CANDIDATE_C_GRID
@@ -29,8 +27,8 @@ def birge_ratio(value, error):
     """Compute the weighted mean of some measurements and their Birge ratio.
 
     Returns (weighted_mean, birge) where `birge` is the Birge ratio itself (the
-    scatter relative to the error bars), NOT an inflated error bar. A value near 1
-    means the error bars are trustworthy; well above 1 means overprecision.
+    scatter relative to the error bars), not an inflated error bar. A value near 1
+    means the error bars match the scatter; well above 1 means overprecision.
     """
     n = len(value)
     weights = 1 / error**2
@@ -42,16 +40,14 @@ def birge_ratio(value, error):
 def birge_ratio_conf_p(birge, n, coverage=0.6827):
     """Exact confidence interval and p-value for the Birge ratio.
 
-    This uses a classic statistical fact: when error bars are calibrated, the squared
-    Birge ratio (times its degrees of freedom) follows a chi-squared distribution.
-    That lets us read off both:
+    When error bars are calibrated, the squared Birge ratio times its degrees of
+    freedom follows a chi-squared distribution. That gives both:
       * a confidence interval for the true Birge ratio c, and
-      * a one-sided p-value testing "are the error bars calibrated (c = 1)?" against
-        "are scientists overprecise (c > 1)?". A small p-value is evidence of
-        overprecision.
+      * a one-sided p-value testing c = 1 (calibrated) against c > 1 (overprecise).
+        A small p-value is evidence of overprecision.
 
-    `coverage` is the confidence level (e.g. pass coverage=0.95 for a 95% CI; the
-    default 0.6827 corresponds to the usual "1 sigma" band).
+    `coverage` is the confidence level (pass coverage=0.95 for a 95% CI; the
+    default 0.6827 is the 1-sigma band).
 
     Returns (interval, p_value), where interval is a 2-element array.
     """
@@ -71,28 +67,28 @@ def birge_ratio_conf_p(birge, n, coverage=0.6827):
 
 
 # ---------------------------------------------------------------------------
-# The single "simulation engine" (STATISTICS_PLAN.md section 3)
+# The simulation engine (STATISTICS_PLAN.md section 3)
 # ---------------------------------------------------------------------------
-# Several of our statistics have no neat formula, so we estimate their behaviour
-# by simulation: generate many fake datasets in which the error bars ARE calibrated
-# (c = 1), and see how the statistics scatter. A clever shortcut lets us simulate
-# only ONCE and reuse it for every candidate c and every statistic:
+# Several statistics have no closed form, so we estimate their behaviour by
+# simulation: generate many datasets with calibrated error bars (c = 1) and see
+# how the statistics scatter. We simulate only once and reuse it for every
+# candidate c and every statistic:
 #
-#   * The Birge ratio simply scales linearly: a draw that gives birge B at c = 1
-#     would give c * B at any other c.
-#   * The pairwise "z-scores" z_ij = (x_i - x_j) / sqrt(sigma_i^2 + sigma_j^2)
-#     also scale linearly: z at c = 1 becomes c * z. The other two statistics are
-#     just counts of how many |z| fall below various thresholds, so we can read
-#     them off at any c by re-thresholding the SAME stored z-scores.
+#   * The Birge ratio scales linearly: a draw giving birge B at c = 1 gives c * B
+#     at any other c.
+#   * The pairwise z-scores z_ij = (x_i - x_j) / sqrt(sigma_i^2 + sigma_j^2) also
+#     scale linearly: z at c = 1 becomes c * z. The other two statistics are just
+#     counts of how many |z| fall below various thresholds, recovered at any c by
+#     re-thresholding the same stored z-scores.
 #
-# So we store, per simulated dataset, its Birge ratio and its sorted |z| values,
-# and everything else is recovered by rescaling. One caveat: although a single z
-# has the same distribution regardless of the error bars, the JOINT behaviour of
-# all the z's together depends on the actual error-bar pattern (sigma), so we must
-# always run the engine with the real sigma of the dataset being analysed.
+# So we store each simulated dataset's Birge ratio and sorted |z| values, and
+# recover everything else by rescaling. One caveat: a single z has the same
+# distribution regardless of the error bars, but the joint distribution of all the
+# z's depends on the error-bar pattern (sigma), so always run the engine with the
+# real sigma of the dataset being analysed.
 
 def parametric_null_sim(sigma, B, rng):
-    """Simulate B fake "calibrated" (c = 1) datasets with the given error bars sigma.
+    """Simulate B calibrated (c = 1) datasets with the given error bars sigma.
 
     Returns
     -------
@@ -100,8 +96,8 @@ def parametric_null_sim(sigma, B, rng):
         The Birge ratio of each simulated dataset.
     abs_z_sorted : (B, n_pairs) float32 array
         For each simulated dataset, the absolute pairwise z-scores |z_ij|, sorted
-        ascending. Sorting them lets us later count "how many are below threshold
-        t" with a fast binary search instead of a slow loop.
+        ascending. Sorting lets us later count how many fall below a threshold t
+        with a binary search instead of a loop.
     """
     sigma = np.asarray(sigma, dtype=float)
     n = len(sigma)
@@ -121,8 +117,8 @@ def parametric_null_sim(sigma, B, rng):
     chunk = max(1, min(B, 4000))
     for start in range(0, B, chunk):
         m = min(chunk, B - start)
-        # Generate m fake datasets of n measurements each. With calibrated error bars
-        # and a true mean of 0, each measurement is just normal noise * sigma.
+        # Generate m datasets of n measurements each. With calibrated error bars
+        # and a true mean of 0, each measurement is normal noise * sigma.
         simulated_values = rng.standard_normal((m, n)) * sigma  # shape (m, n)
         weighted_mean = (simulated_values * weights).sum(axis=1) / total_weight
         residuals = simulated_values - weighted_mean[:, None]
@@ -161,12 +157,12 @@ def _first_crossing(x, y, target):
 def invert_ci(candidate_c_grid, q_low, q_high, observed):
     """Turn a family of simulated reference bands into a confidence interval for c.
 
-    The idea ("test inversion"): for each candidate true value c, simulation gives
-    a band [q_low(c), q_high(c)] that the statistic should fall in 95% of the time.
-    The 95% confidence interval is every candidate c whose band contains our
-    OBSERVED statistic. Because the band shifts steadily as c grows, that set of
-    candidates is one continuous interval; its two ends are where the observed
-    value crosses the lower-quantile curve and the upper-quantile curve.
+    Test inversion: for each candidate true value c, simulation gives a band
+    [q_low(c), q_high(c)] that the statistic falls in 95% of the time. The 95%
+    confidence interval is every candidate c whose band contains the observed
+    statistic. Because the band shifts steadily as c grows, that set of candidates
+    is one continuous interval; its ends are where the observed value crosses the
+    lower-quantile and upper-quantile curves.
 
     Works whether the statistic grows or shrinks with c.
     """
@@ -187,14 +183,13 @@ def invert_ci(candidate_c_grid, q_low, q_high, observed):
 # ---------------------------------------------------------------------------
 # Birge-ratio jackknife (STATISTICS_PLAN.md section 4.1)
 # ---------------------------------------------------------------------------
-# The "jackknife" is a general-purpose way to get a confidence interval without a
-# formula: recompute the statistic many times, each time leaving ONE measurement
-# out, and see how much the answer wobbles. The Birge ratio's distribution is
-# lopsided, so a plain jackknife would give intervals that are slightly too
-# narrow. We can optionally do the arithmetic on a transformed scale (e.g. logs)
-# that is more symmetric, then transform the interval back. The transform we
-# actually use is chosen empirically in check_jackknife.py (it turned out to be
-# the plain "identity" -- no transform -- per a deliberate decision).
+# The jackknife gets a confidence interval without a closed form: recompute the
+# statistic many times, each time leaving one measurement out, and measure how
+# much the answer varies. The Birge ratio's distribution is skewed, so a plain
+# jackknife gives intervals that are slightly too narrow. The arithmetic can
+# optionally run on a more symmetric transformed scale (e.g. logs) and transform
+# the interval back. The transform used is chosen empirically in
+# check_jackknife.py; the final choice is the identity (no transform).
 
 def _scale_funcs(scale):
     """Return (transform, inverse_transform, null_value) for a chosen scale.
@@ -214,9 +209,9 @@ def _scale_funcs(scale):
 def birge_jackknife(value, error, scale="identity", coverage=0.95, alpha_test=0.005):
     """Jackknife confidence interval and one-sided test for the Birge ratio.
 
-    Leaves out one measurement at a time to gauge how much the Birge ratio wobbles,
-    builds a confidence interval from that wobble, and tests "calibrated error bars
-    (c = 1)" against "overprecision (c > 1)".
+    Leaves out one measurement at a time to gauge how much the Birge ratio varies,
+    builds a confidence interval from that variation, and tests c = 1 (calibrated)
+    against c > 1 (overprecision).
 
     Returns (ci_low, ci_high, p_value) on the ordinary Birge-ratio scale.
     """
@@ -238,7 +233,7 @@ def birge_jackknife(value, error, scale="identity", coverage=0.95, alpha_test=0.
     theta_full = transform(birge_full)
     theta_leave_one_out = transform(birge_leave_one_out)
 
-    # "Pseudovalues" are the standard jackknife building block: each one estimates
+    # Pseudovalues are the standard jackknife building block: each one estimates
     # the statistic with the influence of a single point amplified. Their average
     # and spread give the estimate and its standard error.
     pseudovalues = n * theta_full - (n - 1) * theta_leave_one_out
@@ -251,8 +246,8 @@ def birge_jackknife(value, error, scale="identity", coverage=0.95, alpha_test=0.
                                pseudo_mean + z_for_ci * standard_error])
     ci = np.sort(inverse_transform(ci_transformed))
 
-    # If every leave-one-out gives the same answer there is no wobble to measure;
-    # treat that as no evidence of overprecision (p = 0.5).
+    # If every leave-one-out gives the same answer there is no variation to
+    # measure; treat that as no evidence of overprecision (p = 0.5).
     z = 0.0 if standard_error == 0 else (pseudo_mean - null_value) / standard_error
     p_value = norm.sf(z)
 

@@ -1,13 +1,12 @@
 """
-Validate the three PARAMETRIC (simulation-based) overprecision tests + intervals:
+Validate the three parametric (simulation-based) overprecision tests + intervals:
   * Birge ratio              -- exact chi-squared formula (methods.birge_ratio_conf_p)
   * calibration area         -- simulation engine (calibration.area_parametric)
   * within-1-sigma share     -- simulation engine (calibration.proportion_parametric)
 
 It also runs a cross-check: the simulation engine should reproduce the exact
 chi-squared Birge-ratio test. If the "birge (engine)" row in the table tracks the
-"birge (chi2)" row, that confirms the engine is trustworthy on a case where we
-already know the right answer.
+"birge (chi2)" row, the engine is confirmed on a case with a known right answer.
 
 The parametric tests are exact apart from simulation noise (controlled by B). One
 engine run of calibrated (c = 1) datasets, conditional on the fixed error-bar pattern,
@@ -38,11 +37,11 @@ N_TYPE1 = 20000   # trials at c = 1 (to measure the tiny type-I rate)
 N_OTHER = 2000    # trials at each c > 1 (to measure power)
 C_GRID = [0.9, 1.0, 1.25, 1.5, 2.0, 3.0]
 
-# Which noise model generates the DATA being tested. Rebound from the command line
-# in __main__ before the worker pool forks. The reference simulation built below
-# is ALWAYS the textbook independent-normal model -- that is the null hypothesis
-# the test inverts. Choosing --dist t or --dist corr only changes the data fed to
-# the fixed test, exposing how its error rate inflates under misspecification.
+# Which noise model generates the data being tested. Rebound from the command line
+# in __main__ before the worker pool forks. The reference simulation built below is
+# always the independent-normal model -- the null hypothesis the test inverts.
+# Choosing --dist t or --dist corr only changes the data fed to the fixed test,
+# exposing how its error rate inflates under misspecification.
 DIST, DF, CORR = "normal", 3.0, 0.1
 
 # The error-bar pattern (sigma) is fixed and the same for every trial, because the

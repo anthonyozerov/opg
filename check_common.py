@@ -1,32 +1,31 @@
 """
 Shared machinery for the validation scripts (check_parametric.py, check_jackknife.py).
 
-These scripts answer a "do our methods actually work?" question by brute force:
-generate thousands of datasets where we KNOW the true overprecision c, run a
-method on each, and tally how often it gets the right answer. Two things are
-checked:
+These scripts check whether the methods work by brute force: generate thousands of
+datasets with a known true overprecision c, run a method on each, and tally how
+often it gets the right answer. Two things are checked:
   * Coverage  -- does the 95% confidence interval contain the true value about
                  95% of the time?
-  * Type-I / power -- when error bars are calibrated (c = 1), does the test wrongly
-                 cry "overprecision!" only as often as it should (the type-I rate,
-                 here 0.005)? And when there IS overprecision (c > 1), how often
-                 does it correctly catch it (the power)?
+  * Type-I / power -- when error bars are calibrated (c = 1), does the test flag
+                 overprecision only as often as it should (the type-I rate, here
+                 0.005)? And when there is overprecision (c > 1), how often does it
+                 correctly catch it (the power)?
 
-A "check" is described by a triple (label, trial_fn, true_of_c):
+A check is a triple (label, trial_fn, true_of_c):
   * label      -- a short name for the table;
   * trial_fn((seed, c)) -> (ci_low, ci_high, p_value) -- runs one dataset;
   * true_of_c(c) -- the statistic's true value at data-generating c (the target
-                    the confidence interval is supposed to cover).
+                    the confidence interval should cover).
 
 `report` runs every check across a grid of c values and prints the table.
 
 Two technical notes (see STATISTICS_PLAN.md section 5):
-  * The test level is alpha = 0.005, so detecting a 0.005 error rate reliably
-    needs a LOT of trials (N_TYPE1).
-  * The trials run in parallel worker processes. We deliberately use the "fork"
-    start method so workers inherit any heavy precomputed data (like a reference
-    simulation) instead of rebuilding it each. trial_fn must be a top-level
-    function so it can be sent to the workers (a functools.partial of one is fine).
+  * The test level is alpha = 0.005, so detecting a 0.005 error rate reliably needs
+    many trials (N_TYPE1).
+  * The trials run in parallel worker processes, using the fork start method so
+    workers inherit heavy precomputed data (like a reference simulation) instead of
+    rebuilding it each time. trial_fn must be a top-level function so it can be sent
+    to the workers (a functools.partial of one is fine).
 """
 
 import argparse
@@ -40,8 +39,8 @@ ALPHA = 0.005
 def dist_arg_parser(description):
     """Command-line options for choosing the data-generating noise model.
 
-    This lets a validation run swap the textbook (independent-normal) data for a
-    deliberately mismatched alternative WITHOUT changing the method under test:
+    This lets a validation run swap the independent-normal data for a deliberately
+    mismatched alternative without changing the method under test:
       --dist t      heavy-tailed noise (same overall spread)
       --dist corr   correlated noise
     The method stays the same; only the simulated data changes, so the resulting
@@ -86,7 +85,7 @@ def report(checks, c_grid, n_type1, n_other, rng):
     for label, trial_fn, true_of_c in checks:
         for c in c_grid:
             # The cases where the overprecision null holds (c <= 1) need many more
-            # trials to pin down the tiny 0.005 type-I rate; c > 1 just measures power.
+            # trials to pin down the 0.005 type-I rate; c > 1 measures power.
             is_null = c <= 1.0
             n_trials = n_type1 if is_null else n_other
             results = run_trials(trial_fn, c, n_trials, rng)

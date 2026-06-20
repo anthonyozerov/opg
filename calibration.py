@@ -1,28 +1,28 @@
 """
 Calibration curve and two related overprecision statistics.
 
-A "calibration curve" asks: when scientists claim, say, 90% confidence, are they
-right about 90% of the time? We can't see each scientist's true value, but we can
-compare every PAIR of measurements. If two calibrated measurements disagree, the size
-of their disagreement (relative to their combined error bars) should follow a
-known bell curve. Comparing the observed pattern to that ideal gives the curve.
+A calibration curve asks: when measurements claim, say, 90% confidence, are they
+right about 90% of the time? We cannot see each true value, but we can compare
+every pair of measurements. If two calibrated measurements disagree, the size of
+their disagreement (relative to their combined error bars) follows a known normal
+distribution. Comparing the observed pattern to that ideal gives the curve.
 
-This file provides three summaries of the same underlying question -- "are the
-error bars calibrated, or too small (overprecision)?" -- each with two ways to get a
+This file provides three summaries of the same question -- are the error bars
+calibrated, or too small (overprecision)? -- each with two ways to get a
 confidence interval and a p-value:
 
   1. Calibration area     -- the gap between the calibration curve and the
-                             "perfectly calibrated" diagonal line. Zero means
-                             perfect; positive means overprecision.
-  2. Within-1-sigma share -- the fraction of measurement pairs that agree to
-                             within 1 standard error. With calibrated error bars this
-                             should be about 68%; overprecision pushes it lower.
+                             perfectly-calibrated diagonal. Zero means perfect;
+                             positive means overprecision.
+  2. Within-1-sigma share -- the fraction of measurement pairs that agree to within
+                             1 standard error. With calibrated error bars this is
+                             about 68%; overprecision pushes it lower.
   3. (The Birge ratio itself lives in methods.py.)
 
-The two routes to a confidence interval are "jackknife" (resample by leaving one
-measurement out) and "parametric" (compare against simulated calibrated datasets).
-See STATISTICS_PLAN.md. Running this file as a script draws the calibration curve
-for one example dataset.
+The two routes to a confidence interval are jackknife (leave one measurement out)
+and parametric (compare against simulated calibrated datasets). See
+STATISTICS_PLAN.md. Run as a script, this file draws the calibration curve for one
+example dataset.
 """
 
 import numpy as np
@@ -35,19 +35,19 @@ from methods import parametric_null_sim, invert_ci, DEFAULT_C0_GRID
 DATASET_NUM = 500
 
 # The horizontal axis of the calibration curve: nominal confidence levels from
-# 0 to 1. For each one we will measure the observed coverage.
+# 0 to 1. The observed coverage is measured at each one.
 CONFIDENCES = np.linspace(0, 1, 99)
 
-# The "within 1 sigma" statistic corresponds to one specific point on the curve:
-# a z-score of 1, i.e. the confidence level 2*Phi(1) - 1 ~= 0.6827. This is the
-# value we'd expect if the error bars were perfectly calibrated (c = 1).
+# The within-1-sigma statistic is one point on the curve: a z-score of 1, i.e. the
+# confidence level 2*Phi(1) - 1 ~= 0.6827, the value expected if the error bars are
+# perfectly calibrated (c = 1).
 P_NULL = 2 * norm.cdf(1.0) - 1  # ~0.6827
 
 
 def pairwise_z_stats(values, sigma):
     """For every pair of measurements, how big is their disagreement?
 
-    Returns the absolute "z-score" of each pair -- the difference between the two
+    Returns the absolute z-score of each pair -- the difference between the two
     measurements divided by their combined error bar -- plus the index arrays
     telling which two measurements each pair came from.
     """
@@ -76,8 +76,8 @@ def calibration_and_ci(values, sigma, confidences=CONFIDENCES):
 
     Returns (area, ci_low, ci_high, observed, p_value). The interval and p-value
     come from the jackknife: recompute the area with each measurement left out and
-    see how much it wobbles. The test is "calibrated error bars (area = 0)" vs.
-    "overprecision (area > 0)".
+    measure how much it varies. The test is area = 0 (calibrated) vs. area > 0
+    (overprecision).
     """
     z_stats, index_a, index_b = pairwise_z_stats(values, sigma)
     n = len(values)
@@ -143,7 +143,7 @@ def calibration_and_ci_boot(values, sigma, confidences=CONFIDENCES, B=2000, rng=
 
     # For each bootstrap resample, weight the original pairs by how many times each
     # of their two measurements was drawn. A measurement drawn against itself gives
-    # a z-score of 0 (always under every threshold), counted here as "degenerate".
+    # a z-score of 0 (always under every threshold), counted here as degenerate.
     boot_areas = np.empty(B)
     for b in range(B):
         drawn = rng.integers(0, n, size=n)
@@ -153,7 +153,7 @@ def calibration_and_ci_boot(values, sigma, confidences=CONFIDENCES, B=2000, rng=
         boot_observed = (pair_weights @ below + degenerate) / total_pairs_boot
         boot_areas[b] = float(np.trapezoid(confidences - boot_observed, confidences))
 
-    # "Basic" bootstrap interval: reflect the bootstrap spread around the estimate.
+    # Basic bootstrap interval: reflect the bootstrap spread around the estimate.
     boot_q = np.quantile(boot_areas, [0.025, 0.975])
     ci_low = 2 * area - boot_q[1]
     ci_high = 2 * area - boot_q[0]
@@ -166,11 +166,11 @@ def calibration_and_ci_boot(values, sigma, confidences=CONFIDENCES, B=2000, rng=
 
 
 # ---------------------------------------------------------------------------
-# What each statistic "should" equal for a given true overprecision c
+# What each statistic equals for a given true overprecision c
 # (STATISTICS_PLAN.md section 0 table). Both functions are monotone in c, so a
 # confidence interval found on the c scale maps cleanly onto the statistic scale.
 # The areas use the same CONFIDENCES grid as the estimator so the comparison is
-# apples-to-apples.
+# consistent.
 # ---------------------------------------------------------------------------
 
 def area_of_c(c, confidences=CONFIDENCES):
@@ -201,10 +201,10 @@ def proportion_of_c(c):
 def proportion_and_ci(values, sigma, scale="identity", coverage=0.95):
     """Within-1-sigma share with a jackknife 95% CI and p-value.
 
-    The test is "calibrated error bars (share = P_NULL ~= 0.6827)" vs. "overprecision
-    (share < P_NULL)". `scale` is 'identity' (no transform) or 'logit' (a
-    transform that can stabilize the variance); the final choice is settled
-    empirically in check_jackknife.py.
+    The test is share = P_NULL (~0.6827, calibrated) vs. share < P_NULL
+    (overprecision). `scale` is 'identity' (no transform) or 'logit' (a transform
+    that can stabilize the variance); the final choice is settled empirically in
+    check_jackknife.py.
 
     Returns (share, ci_low, ci_high, p_value).
     """
@@ -245,8 +245,8 @@ def proportion_and_ci(values, sigma, scale="identity", coverage=0.95):
         pseudo_mean - z_for_ci * standard_error_of_mean,
         pseudo_mean + z_for_ci * standard_error_of_mean])))
 
-    # No wobble across leave-one-out (e.g. every pair on the same side of z = 1 at
-    # very small n) -> treat as no evidence of overprecision.
+    # No variation across leave-one-out (e.g. every pair on the same side of z = 1
+    # at very small n) -> treat as no evidence of overprecision.
     z = (0.0 if standard_error_of_mean == 0
          else (pseudo_mean - null_value) / standard_error_of_mean)
     p_value = norm.cdf(z)  # lower tail: a small share is evidence of overprecision
@@ -268,7 +268,7 @@ def _proportions_over_grid(abs_z_sorted, candidate_c_grid):
     Returns a (B, C) array (B simulated datasets, C candidate c values).
     """
     B, n_pairs = abs_z_sorted.shape
-    # At candidate c, "within 1 sigma" means the rescaled |z| is below 1, i.e. the
+    # At candidate c, within 1 sigma means the rescaled |z| is below 1, i.e. the
     # stored |z| is below 1/c. searchsorted counts those quickly in sorted data.
     thresholds = 1.0 / np.asarray(candidate_c_grid, dtype=float)
     out = np.empty((B, len(thresholds)))

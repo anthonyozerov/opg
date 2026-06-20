@@ -1,14 +1,14 @@
 """
-Validate the three JACKKNIFE (leave-one-out) overprecision tests + intervals:
+Validate the three jackknife (leave-one-out) overprecision tests + intervals:
   * Birge ratio              -- methods.birge_jackknife
   * calibration area         -- calibration.calibration_and_ci
   * within-1-sigma share     -- calibration.proportion_and_ci
 
-Unlike the parametric tests, the jackknife has NO guarantee of being exactly right
-in small samples (it relies on an approximation that improves with sample size).
-So its 0.005 error rate has to be earned EMPIRICALLY here. We keep the candidate
-"variance-stabilizing scales" as separate rows so the frozen final choices
-(Birge ratio = identity, share = identity) rest on evidence rather than taste.
+Unlike the parametric tests, the jackknife is not guaranteed exact in small samples
+(it relies on an approximation that improves with sample size), so its 0.005 error
+rate has to be checked empirically here. The candidate variance-stabilizing scales
+are kept as separate rows so the frozen final choices (Birge ratio = identity,
+share = identity) rest on evidence.
 (STATISTICS_PLAN.md sections 4.1, 4.3, 7.3.)
 """
 
