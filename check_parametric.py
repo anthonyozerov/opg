@@ -12,7 +12,6 @@ The parametric tests are exact apart from simulation noise (controlled by B). On
 engine run of calibrated (c = 1) datasets, conditional on the fixed error-bar pattern,
 serves all three statistics: its Birge ratios drive the cross-check, and its
 sorted |z| values drive the area and the share by rescaling.
-(STATISTICS_PLAN.md sections 3, 4.)
 """
 
 import numpy as np

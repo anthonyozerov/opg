@@ -9,7 +9,6 @@ Unlike the parametric tests, the jackknife is not guaranteed exact in small samp
 rate has to be checked empirically here. The candidate variance-stabilizing scales
 are kept as separate rows so the frozen final choices (Birge ratio = identity,
 share = identity) rest on evidence.
-(STATISTICS_PLAN.md sections 4.1, 4.3, 7.3.)
 """
 
 import numpy as np

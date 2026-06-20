@@ -8,8 +8,7 @@ giving a Birge ratio near 1. A Birge ratio above 1 means the measurements scatte
 more than the bars predict, which is overprecision.
 
 Throughout, `c` is the true population Birge ratio (the amount of overprecision,
-which the data only let us estimate). See STATISTICS_PLAN.md for the full
-statistical reasoning.
+which the data only let us estimate).
 """
 
 import numpy as np
@@ -67,7 +66,7 @@ def birge_ratio_conf_p(birge, n, coverage=0.6827):
 
 
 # ---------------------------------------------------------------------------
-# The simulation engine (STATISTICS_PLAN.md section 3)
+# The simulation engine
 # ---------------------------------------------------------------------------
 # Several statistics have no closed form, so we estimate their behaviour by
 # simulation: generate many datasets with calibrated error bars (c = 1) and see
@@ -181,7 +180,7 @@ def invert_ci(candidate_c_grid, q_low, q_high, observed):
 
 
 # ---------------------------------------------------------------------------
-# Birge-ratio jackknife (STATISTICS_PLAN.md section 4.1)
+# Birge-ratio jackknife
 # ---------------------------------------------------------------------------
 # The jackknife gets a confidence interval without a closed form: recompute the
 # statistic many times, each time leaving one measurement out, and measure how

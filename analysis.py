@@ -14,8 +14,6 @@ How to read the output:
   * The 95% confidence interval is a plausible range for the true value.
   * The p-value tests calibrated error bars against overprecision. A small p-value
     (flagged p < 0.005 with a *) is evidence of overprecision.
-
-See STATISTICS_PLAN.md for the statistical details.
 """
 
 import pandas as pd

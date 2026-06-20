@@ -20,9 +20,8 @@ confidence interval and a p-value:
   3. (The Birge ratio itself lives in methods.py.)
 
 The two routes to a confidence interval are jackknife (leave one measurement out)
-and parametric (compare against simulated calibrated datasets). See
-STATISTICS_PLAN.md. Run as a script, this file draws the calibration curve for one
-example dataset.
+and parametric (compare against simulated calibrated datasets). Run as a script,
+this file draws the calibration curve for one example dataset.
 """
 
 import numpy as np
@@ -166,8 +165,8 @@ def calibration_and_ci_boot(values, sigma, confidences=CONFIDENCES, B=2000, rng=
 
 
 # ---------------------------------------------------------------------------
-# What each statistic equals for a given true overprecision c
-# (STATISTICS_PLAN.md section 0 table). Both functions are monotone in c, so a
+# What each statistic equals for a given true overprecision c.
+# Both functions are monotone in c, so a
 # confidence interval found on the c scale maps cleanly onto the statistic scale.
 # The areas use the same CONFIDENCES grid as the estimator so the comparison is
 # consistent.
@@ -192,8 +191,8 @@ def proportion_of_c(c):
 
 
 # ---------------------------------------------------------------------------
-# Within-1-sigma share: jackknife CI + one-sided test
-# (STATISTICS_PLAN.md section 4.3). This is just the calibration curve read at the
+# Within-1-sigma share: jackknife CI + one-sided test.
+# This is just the calibration curve read at the
 # single point z = 1, so it reuses the same leave-one-out idea as
 # calibration_and_ci, specialized to one threshold.
 # ---------------------------------------------------------------------------
@@ -255,8 +254,8 @@ def proportion_and_ci(values, sigma, scale="identity", coverage=0.95):
 
 
 # ---------------------------------------------------------------------------
-# Parametric (simulation-based) CI + test for the area and the share
-# (STATISTICS_PLAN.md sections 3, 4.2, 4.3). Given the sorted |z| from each
+# Parametric (simulation-based) CI + test for the area and the share.
+# Given the sorted |z| from each
 # simulated calibrated dataset (parametric_null_sim), a draw's statistic at candidate
 # c is the same calculation applied to {c * |z|}, i.e. counting |z| below
 # (threshold / c). That lets one simulation serve every candidate c.

@@ -19,7 +19,7 @@ A check is a triple (label, trial_fn, true_of_c):
 
 `report` runs every check across a grid of c values and prints the table.
 
-Two technical notes (see STATISTICS_PLAN.md section 5):
+Two technical notes:
   * The test level is alpha = 0.005, so detecting a 0.005 error rate reliably needs
     many trials (N_TYPE1).
   * The trials run in parallel worker processes, using the fork start method so

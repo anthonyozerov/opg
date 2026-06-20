@@ -10,7 +10,7 @@ metrologists do.
 The goal is not to model the real history of physics but to create test data with
 a known correct answer, so the statistical methods (in analysis.py /
 calibration.py) can be checked for whether they detect over-confidence when it is
-present. See SCIENTIFIC_CONTEXT.md.
+present.
 
 Running this script writes two folders:
   sim-G/             one CSV per dataset: the measurements + the averages
@@ -133,7 +133,7 @@ def generate_measurements(n, true_value, true_birge, rng, dist="normal", df=3.0,
                     Tests robustness to non-normality. Requires df > 2.
       * "corr"   -- normal noise with measurements correlated rather than
                     independent. Tests robustness to dependence between
-                    measurements (flagged in SCIENTIFIC_CONTEXT.md).
+                    measurements.
 
     Only the noise shape changes; the reported error bars are untouched, so these
     options isolate the effect of misspecification on the fixed tests.
