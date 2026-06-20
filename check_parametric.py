@@ -10,7 +10,7 @@ chi-squared Birge-ratio test. If the "birge (engine)" row in the table tracks th
 already know the right answer.
 
 The parametric tests are exact apart from simulation noise (controlled by B). One
-engine run of honest (c = 1) datasets, conditional on the fixed error-bar pattern,
+engine run of calibrated (c = 1) datasets, conditional on the fixed error-bar pattern,
 serves all three statistics: its Birge ratios drive the cross-check, and its
 sorted |z| values drive the area and the share by rescaling.
 (STATISTICS_PLAN.md sections 3, 4.)
@@ -32,11 +32,11 @@ from check_common import report, ALPHA, dist_arg_parser
 RNG = np.random.default_rng(0)
 
 N = 20            # measurements per simulated dataset
-B_REF = 20000     # reference honest datasets (enough to resolve the 0.005 tail)
+B_REF = 20000     # reference calibrated datasets (enough to resolve the 0.005 tail)
 CI_SUB = 8000     # how many of those to reuse for the confidence-interval bands
 N_TYPE1 = 20000   # trials at c = 1 (to measure the tiny type-I rate)
 N_OTHER = 2000    # trials at each c > 1 (to measure power)
-C_GRID = [1.0, 1.25, 1.5, 2.0, 3.0]
+C_GRID = [0.9, 1.0, 1.25, 1.5, 2.0, 3.0]
 
 # Which noise model generates the DATA being tested. Rebound from the command line
 # in __main__ before the worker pool forks. The reference simulation built below

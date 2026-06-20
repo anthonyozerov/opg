@@ -7,7 +7,7 @@ method on each, and tally how often it gets the right answer. Two things are
 checked:
   * Coverage  -- does the 95% confidence interval contain the true value about
                  95% of the time?
-  * Type-I / power -- when error bars are honest (c = 1), does the test wrongly
+  * Type-I / power -- when error bars are calibrated (c = 1), does the test wrongly
                  cry "overprecision!" only as often as it should (the type-I rate,
                  here 0.005)? And when there IS overprecision (c > 1), how often
                  does it correctly catch it (the power)?
@@ -85,12 +85,13 @@ def report(checks, c_grid, n_type1, n_other, rng):
           f"{'rej(p<.005)':>13}{'width':>10}")
     for label, trial_fn, true_of_c in checks:
         for c in c_grid:
-            # The honest case (c = 1) needs many more trials to pin down the tiny
-            # 0.005 type-I rate; other c values just measure power.
-            n_trials = n_type1 if c == 1.0 else n_other
+            # The cases where the overprecision null holds (c <= 1) need many more
+            # trials to pin down the tiny 0.005 type-I rate; c > 1 just measures power.
+            is_null = c <= 1.0
+            n_trials = n_type1 if is_null else n_other
             results = run_trials(trial_fn, c, n_trials, rng)
             coverage, rejection_rate, width = summarize(results, true_of_c(c))
-            tag = "type-I" if c == 1.0 else "power"
+            tag = "type-I" if is_null else "power"
             print(f"{label:<17}{c:>6.2f}{true_of_c(c):>9.4f}{coverage:>10.3f}"
                   f"{rejection_rate:>13.4f}{width:>10.4f}  ({tag}, N={n_trials})")
         print()

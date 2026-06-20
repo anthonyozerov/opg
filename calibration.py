@@ -3,24 +3,24 @@ Calibration curve and two related overprecision statistics.
 
 A "calibration curve" asks: when scientists claim, say, 90% confidence, are they
 right about 90% of the time? We can't see each scientist's true value, but we can
-compare every PAIR of measurements. If two honest measurements disagree, the size
+compare every PAIR of measurements. If two calibrated measurements disagree, the size
 of their disagreement (relative to their combined error bars) should follow a
 known bell curve. Comparing the observed pattern to that ideal gives the curve.
 
 This file provides three summaries of the same underlying question -- "are the
-error bars honest, or too small (overprecision)?" -- each with two ways to get a
+error bars calibrated, or too small (overprecision)?" -- each with two ways to get a
 confidence interval and a p-value:
 
   1. Calibration area     -- the gap between the calibration curve and the
                              "perfectly calibrated" diagonal line. Zero means
                              perfect; positive means overprecision.
   2. Within-1-sigma share -- the fraction of measurement pairs that agree to
-                             within 1 standard error. With honest error bars this
+                             within 1 standard error. With calibrated error bars this
                              should be about 68%; overprecision pushes it lower.
   3. (The Birge ratio itself lives in methods.py.)
 
 The two routes to a confidence interval are "jackknife" (resample by leaving one
-measurement out) and "parametric" (compare against simulated honest datasets).
+measurement out) and "parametric" (compare against simulated calibrated datasets).
 See STATISTICS_PLAN.md. Running this file as a script draws the calibration curve
 for one example dataset.
 """
@@ -40,7 +40,7 @@ CONFIDENCES = np.linspace(0, 1, 99)
 
 # The "within 1 sigma" statistic corresponds to one specific point on the curve:
 # a z-score of 1, i.e. the confidence level 2*Phi(1) - 1 ~= 0.6827. This is the
-# value we'd expect if the error bars were perfectly honest (c = 1).
+# value we'd expect if the error bars were perfectly calibrated (c = 1).
 P_NULL = 2 * norm.cdf(1.0) - 1  # ~0.6827
 
 
@@ -76,7 +76,7 @@ def calibration_and_ci(values, sigma, confidences=CONFIDENCES):
 
     Returns (area, ci_low, ci_high, observed, p_value). The interval and p-value
     come from the jackknife: recompute the area with each measurement left out and
-    see how much it wobbles. The test is "honest error bars (area = 0)" vs.
+    see how much it wobbles. The test is "calibrated error bars (area = 0)" vs.
     "overprecision (area > 0)".
     """
     z_stats, index_a, index_b = pairwise_z_stats(values, sigma)
@@ -158,7 +158,7 @@ def calibration_and_ci_boot(values, sigma, confidences=CONFIDENCES, B=2000, rng=
     ci_low = 2 * area - boot_q[1]
     ci_high = 2 * area - boot_q[0]
 
-    # One-sided p-value: re-center the bootstrap areas on 0 (honest case) and ask
+    # One-sided p-value: re-center the bootstrap areas on 0 (calibrated case) and ask
     # how often they reach the observed area.
     p_value = np.mean((boot_areas - np.mean(boot_areas)) >= area)
 
@@ -201,7 +201,7 @@ def proportion_of_c(c):
 def proportion_and_ci(values, sigma, scale="identity", coverage=0.95):
     """Within-1-sigma share with a jackknife 95% CI and p-value.
 
-    The test is "honest error bars (share = P_NULL ~= 0.6827)" vs. "overprecision
+    The test is "calibrated error bars (share = P_NULL ~= 0.6827)" vs. "overprecision
     (share < P_NULL)". `scale` is 'identity' (no transform) or 'logit' (a
     transform that can stabilize the variance); the final choice is settled
     empirically in check_jackknife.py.
@@ -257,7 +257,7 @@ def proportion_and_ci(values, sigma, scale="identity", coverage=0.95):
 # ---------------------------------------------------------------------------
 # Parametric (simulation-based) CI + test for the area and the share
 # (STATISTICS_PLAN.md sections 3, 4.2, 4.3). Given the sorted |z| from each
-# simulated honest dataset (parametric_null_sim), a draw's statistic at candidate
+# simulated calibrated dataset (parametric_null_sim), a draw's statistic at candidate
 # c is the same calculation applied to {c * |z|}, i.e. counting |z| below
 # (threshold / c). That lets one simulation serve every candidate c.
 # ---------------------------------------------------------------------------
@@ -341,7 +341,7 @@ def area_parametric(values, sigma, B=20000, rng=None, confidences=CONFIDENCES,
                     ci_subsample=8000):
     """Calibration area with a parametric (simulation-based) 95% CI and p-value.
 
-    Compares the observed area against many simulated honest datasets. The p-value
+    Compares the observed area against many simulated calibrated datasets. The p-value
     is the fraction of simulated areas at least as large as observed; the CI comes
     from inverting the simulated quantile bands across candidate c. Pass
     `abs_z_sorted` (from parametric_null_sim) to reuse one engine run.

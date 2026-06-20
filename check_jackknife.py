@@ -25,7 +25,7 @@ RNG = np.random.default_rng(0)
 N = 20            # measurements per simulated dataset
 N_TYPE1 = 20000   # trials at c = 1 (to measure the tiny type-I rate)
 N_OTHER = 2000    # trials at each c > 1 (to measure power)
-C_GRID = [1.0, 1.25, 1.5, 2.0, 3.0]
+C_GRID = [0.9, 1.0, 1.25, 1.5, 2.0, 3.0]
 
 # Which noise model generates the data being tested. Rebound from the command line
 # in __main__ before the worker pool forks. Defaults to the textbook model.

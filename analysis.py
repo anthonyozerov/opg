@@ -8,11 +8,11 @@ interval and a p-value (the "parametric" simulation route and the "jackknife"
 leave-one-out route).
 
 How to read the output:
-  * Each statistic has a known "honest" value (Birge ratio = 1, area = 0, share
+  * Each statistic has a known "calibrated" value (Birge ratio = 1, area = 0, share
     ~= 0.6827). Departures in the overprecision direction (Birge ratio above 1,
     area above 0, share below 0.6827) suggest scientists were over-confident.
   * The 95% confidence interval is a plausible range for the true value.
-  * The p-value tests "honest error bars" against "overprecision". A small
+  * The p-value tests "calibrated error bars" against "overprecision". A small
     p-value (we flag p < 0.005 with a *) is evidence of overprecision.
 
 See STATISTICS_PLAN.md for the statistical details.
@@ -38,7 +38,7 @@ from calibration import (
 )
 
 DATASET_NUM = 399
-B = 20000             # number of simulated honest datasets for the parametric route
+B = 20000             # number of simulated calibrated datasets for the parametric route
 ALPHA_TEST = 0.005    # p-value threshold we flag as significant
 RNG = np.random.default_rng(0)
 
@@ -92,7 +92,7 @@ if __name__ == "__main__":
         values, sigma, scale="identity")
     share_param, share_lo_param, share_hi_param, share_p_param = proportion_parametric(
         values, sigma, abs_z_sorted=abs_z_sorted)
-    print(f"\nWithin-1-sigma share = {share_obs:.4f}  (honest value {P_NULL:.4f})")
+    print(f"\nWithin-1-sigma share = {share_obs:.4f}  (calibrated value {P_NULL:.4f})")
     print_result_row("  parametric", share_param,
                      (share_lo_param, share_hi_param), share_p_param)
     print_result_row("  jackknife", share_obs,

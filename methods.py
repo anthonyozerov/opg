@@ -2,7 +2,7 @@
 Core statistical tools shared by the analysis scripts.
 
 The central quantity here is the *Birge ratio*. Imagine many measurements of the
-same thing, each with its own claimed error bar. If those error bars are honest,
+same thing, each with its own claimed error bar. If those error bars are calibrated,
 the measurements should scatter around their average by about as much as the bars
 predict, giving a Birge ratio near 1. If the measurements scatter MORE than the
 bars predict, the Birge ratio is above 1 -- a sign of "overprecision" (scientists
@@ -42,11 +42,11 @@ def birge_ratio(value, error):
 def birge_ratio_conf_p(birge, n, coverage=0.6827):
     """Exact confidence interval and p-value for the Birge ratio.
 
-    This uses a classic statistical fact: when error bars are honest, the squared
+    This uses a classic statistical fact: when error bars are calibrated, the squared
     Birge ratio (times its degrees of freedom) follows a chi-squared distribution.
     That lets us read off both:
       * a confidence interval for the true Birge ratio c, and
-      * a one-sided p-value testing "are the error bars honest (c = 1)?" against
+      * a one-sided p-value testing "are the error bars calibrated (c = 1)?" against
         "are scientists overprecise (c > 1)?". A small p-value is evidence of
         overprecision.
 
@@ -74,7 +74,7 @@ def birge_ratio_conf_p(birge, n, coverage=0.6827):
 # The single "simulation engine" (STATISTICS_PLAN.md section 3)
 # ---------------------------------------------------------------------------
 # Several of our statistics have no neat formula, so we estimate their behaviour
-# by simulation: generate many fake datasets in which the error bars ARE honest
+# by simulation: generate many fake datasets in which the error bars ARE calibrated
 # (c = 1), and see how the statistics scatter. A clever shortcut lets us simulate
 # only ONCE and reuse it for every candidate c and every statistic:
 #
@@ -92,7 +92,7 @@ def birge_ratio_conf_p(birge, n, coverage=0.6827):
 # always run the engine with the real sigma of the dataset being analysed.
 
 def parametric_null_sim(sigma, B, rng):
-    """Simulate B fake "honest" (c = 1) datasets with the given error bars sigma.
+    """Simulate B fake "calibrated" (c = 1) datasets with the given error bars sigma.
 
     Returns
     -------
@@ -121,7 +121,7 @@ def parametric_null_sim(sigma, B, rng):
     chunk = max(1, min(B, 4000))
     for start in range(0, B, chunk):
         m = min(chunk, B - start)
-        # Generate m fake datasets of n measurements each. With honest error bars
+        # Generate m fake datasets of n measurements each. With calibrated error bars
         # and a true mean of 0, each measurement is just normal noise * sigma.
         simulated_values = rng.standard_normal((m, n)) * sigma  # shape (m, n)
         weighted_mean = (simulated_values * weights).sum(axis=1) / total_weight
@@ -215,7 +215,7 @@ def birge_jackknife(value, error, scale="identity", coverage=0.95, alpha_test=0.
     """Jackknife confidence interval and one-sided test for the Birge ratio.
 
     Leaves out one measurement at a time to gauge how much the Birge ratio wobbles,
-    builds a confidence interval from that wobble, and tests "honest error bars
+    builds a confidence interval from that wobble, and tests "calibrated error bars
     (c = 1)" against "overprecision (c > 1)".
 
     Returns (ci_low, ci_high, p_value) on the ordinary Birge-ratio scale.
